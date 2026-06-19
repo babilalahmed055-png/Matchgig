@@ -517,7 +517,7 @@ export default function AuthenticationSystem({
         skills: onboardingSkills.length > 0 ? onboardingSkills : ['Graphic Design'],
         city: 'Lahore',
         country: onboardingCountry,
-        coins: onboardingRole === 'Client' ? 1200 : 350,
+        coins: 100,
         rating: 5,
         completedJobs: onboardingRole === 'Freelancer' ? 1 : 0,
         badge: onboardingRole === 'Freelancer' ? 'Creator' : 'Verified',
@@ -736,29 +736,38 @@ export default function AuthenticationSystem({
 
             {authMode === 'welcome' && (
               <div className="space-y-8 py-6 text-center max-w-lg mx-auto animate-fadeIn">
-                <div className="space-y-2">
-                  <h1 className="text-5xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-indigo-400 to-amber-500">
-                    MATCHGIG
-                  </h1>
-                  <p className="text-sm font-semibold tracking-wider text-neutral-400 font-sans uppercase">
-                    Connect • Create • Earn
-                  </p>
-                  <p className="text-xs text-neutral-500 font-sans leading-relaxed">
-                    رابطہ کریں • تخلیق کریں • کمائیں - پاکستان کا سب سے بڑا فری لانس اور سوشل میڈیا پلیٹ فارم
-                  </p>
+                <div className="space-y-4 flex flex-col items-center">
+                  {/* Premium Interactive MG Logo */}
+                  <div className="relative w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-b from-[#131f37] to-[#070e1b] border border-[#d4af37]/45 shadow-[0_0_20px_rgba(212,175,55,0.22)] overflow-hidden shrink-0 animate-pulse">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.25)_0%,transparent_70%)]" />
+                    <span className="font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-[#f2dd9d] via-[#d4af37] to-[#cca43b] text-[34px] z-10">M</span>
+                    <span className="font-extrabold tracking-tight font-display text-[#f8fafc] text-[34px] -ml-[2px] z-10">G</span>
+                  </div>
+                  
+                  <div>
+                    <h1 className="text-4xl font-black tracking-widest text-[#f8fafc] font-display">
+                      MATCH<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ecd279] to-[#d4af37]">GIG</span>
+                    </h1>
+                    <p className="text-xs font-semibold tracking-wider text-[#d4af37] font-sans uppercase mt-1">
+                      Connect • Create • Earn
+                    </p>
+                    <p className="text-[11px] text-neutral-400 font-sans leading-relaxed mt-2 max-w-xs mx-auto">
+                      رابطہ کریں • تخلیق کریں • کمائیں - پاکستان کا سب سے بڑا پریمیم فری لانس اور کریئٹر معیشت کا پلیٹ فارم
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-3.5 pt-6 max-w-sm mx-auto">
+                <div className="space-y-3.5 pt-4 max-w-sm mx-auto">
                   <button
                     onClick={() => {
                       setFormError('');
                       setFormSuccess('');
                       setAuthMode('login');
                     }}
-                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-2xl text-xs uppercase tracking-wider transition-all duration-300 flex items-center justify-center space-x-2 border border-indigo-500/30"
+                    className="w-full py-3 bg-[#0d1c3a] hover:bg-[#152a54] text-white font-extrabold rounded-2xl text-xs uppercase tracking-wider transition-all duration-300 flex items-center justify-center space-x-2 border border-[#d4af37]/25 hover:border-[#d4af37]/50 active:scale-95"
                   >
-                    <LogIn className="w-4 h-4" />
-                    <span>🔹 Login (لاگ ان کریں)</span>
+                    <LogIn className="w-4 h-4 text-[#d4af37]" />
+                    <span>Login (لاگ ان کریں)</span>
                   </button>
 
                   <button
@@ -771,10 +780,10 @@ export default function AuthenticationSystem({
                       setFormSuccess('');
                       setAuthMode('signup');
                     }}
-                    className="w-full py-3 bg-gradient-to-r from-indigo-700/60 to-purple-600/60 hover:from-indigo-600 hover:to-purple-500 text-white font-extrabold rounded-2xl text-xs uppercase tracking-wider transition-all duration-300 flex items-center justify-center space-x-2 border border-indigo-500/30"
+                    className="w-full py-3 bg-gradient-to-r from-[#cca43b] to-[#d4af37] hover:from-[#d4af37] hover:to-[#eecf6d] text-neutral-950 font-extrabold rounded-2xl text-xs uppercase tracking-wider transition-all duration-300 flex items-center justify-center space-x-2 border border-[#d4af37]/40 shadow-lg active:scale-95"
                   >
-                    <User className="w-4 h-4 text-emerald-400" />
-                    <span>🔹 Create Account (اکاؤنٹ بنائیں)</span>
+                    <User className="w-4 h-4 text-neutral-950" />
+                    <span>Create Account (اکاؤنٹ بنائیں)</span>
                   </button>
 
                   <div className="relative py-2">
@@ -784,20 +793,23 @@ export default function AuthenticationSystem({
 
                   <button
                     onClick={() => handleGoogleOneTapLogin('fatima.designer@matchgig.com')}
-                    className="w-full py-3 bg-white hover:bg-neutral-100 text-neutral-900 font-extrabold rounded-2xl text-xs transition duration-300 flex items-center justify-center space-x-2.5 border border-neutral-200 shadow"
+                    className="w-full py-3 bg-white hover:bg-neutral-100 text-neutral-900 font-extrabold rounded-2xl text-xs transition duration-300 flex items-center justify-center space-x-2.5 border border-neutral-200 shadow-xl active:scale-95"
                   >
                     <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" alt="Google" className="w-4 h-4" />
-                    <span>🔹 Continue with Google</span>
+                    <span>Continue with Google</span>
                   </button>
 
                   <button
-                    onClick={() => setShowAppleIDPanel(true)}
-                    className="w-full py-3 bg-neutral-950 hover:bg-neutral-900 text-white font-extrabold rounded-2xl text-xs border border-neutral-800 transition duration-300 flex items-center justify-center space-x-2.5"
+                    onClick={() => {
+                      setShowAppleIDPanel(true);
+                      handleTriggerAppleFaceID();
+                    }}
+                    className="w-full py-3 bg-[#020617] hover:bg-neutral-900 text-white font-extrabold rounded-2xl text-xs border border-neutral-800 transition duration-300 flex items-center justify-center space-x-2.5 active:scale-95 shadow-lg"
                   >
                     <svg className="w-4 h-4 fill-current text-white" viewBox="0 0 24 24">
                       <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.54 9.103 1.51 12.06 1.005 1.45 2.176 3.064 3.743 3.003 1.51-.061 2.083-.974 3.905-.974 1.815 0 2.35.974 3.921.94 1.6-.03 2.636-1.464 3.616-2.894 1.134-1.656 1.603-3.253 1.63-3.336-.057-.025-3.136-1.201-3.167-4.78-.027-2.985 2.45-4.417 2.56-4.484-1.402-2.043-3.564-2.274-4.321-2.336-1.921-.153-3.481 1.011-4.486 1.011zm2.355-3.987c.801-.98 1.34-2.342 1.192-3.704-1.168.048-2.585.779-3.42 1.761-.75.864-1.405 2.25-1.221 3.585 1.3.102 2.637-.643 3.449-1.642z"/>
                     </svg>
-                    <span>🔹 Continue with Apple</span>
+                    <span>Continue with Apple ID</span>
                   </button>
 
                   <button

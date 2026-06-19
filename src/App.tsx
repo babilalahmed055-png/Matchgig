@@ -70,7 +70,9 @@ export default function App() {
     standardFee: 20,
     premiumFee: 10,
     maxDailyTransaction: 10000,
-    escrowCommission: 15
+    escrowCommission: 15,
+    totalCoinSupply: 100000000,
+    circulatingCoins: 0
   });
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
 
@@ -201,7 +203,9 @@ export default function App() {
         standardFee: 20,
         premiumFee: 10,
         maxDailyTransaction: 10000,
-        escrowCommission: 15
+        escrowCommission: 15,
+        totalCoinSupply: 100000000,
+        circulatingCoins: 0
       };
       setEconomySettings(defaultEconomy);
       localStorage.setItem('matchgig_economy_settings', JSON.stringify(defaultEconomy));
@@ -235,6 +239,29 @@ export default function App() {
   const handleUpdateUsersList = (updatedUsers: User[]) => {
     setUsers(updatedUsers);
     syncState('matchgig_users', updatedUsers);
+
+    if (updatedUsers.length > users.length) {
+      const newUser = updatedUsers.find(nu => !users.some(ou => ou.id === nu.id));
+      if (newUser) {
+        setTransactions((prevTxs) => {
+          const hasWelcomeTx = prevTxs.some(t => t.userId === newUser.id && t.type === 'bonus' && t.amount === 100);
+          if (!hasWelcomeTx) {
+            const welcomeTx: Transaction = {
+              id: 'tx_welcome_' + Math.random().toString(36).substring(2, 9),
+              userId: newUser.id,
+              type: 'bonus',
+              amount: 100,
+              description: '🎁 100 free coins welcome registration bonus drop credited!',
+              timestamp: new Date().toISOString()
+            };
+            const updatedTxs = [welcomeTx, ...prevTxs];
+            syncState('matchgig_transactions', updatedTxs);
+            return updatedTxs;
+          }
+          return prevTxs;
+        });
+      }
+    }
   };
 
   const currentUser = users.find((u) => u.id === currentUserId) || null;
@@ -268,7 +295,7 @@ export default function App() {
       skills: signupRole === 'Freelancer' ? ['Logo Design', 'UI/UX'] : ['Hiring', 'Growth'],
       city: 'Karachi',
       country: 'Pakistan',
-      coins: signupRole === 'Client' ? 1000 : 250,
+      coins: 100,
       rating: 0,
       completedJobs: 0,
       badge: 'None',
@@ -277,8 +304,22 @@ export default function App() {
       subscription: 'Free'
     };
 
+    const welcomeTx: Transaction = {
+      id: 'tx_welcome_' + Math.random().toString(36).substring(2, 9),
+      userId: newId,
+      type: 'bonus',
+      amount: 100,
+      description: '🎁 100 free coins welcome registration bonus drop credited!',
+      timestamp: new Date().toISOString()
+    };
+
     const updated = [...users, newUser];
     handleUpdateUsersList(updated);
+
+    const updatedTxs = [welcomeTx, ...transactions];
+    setTransactions(updatedTxs);
+    syncState('matchgig_transactions', updatedTxs);
+
     setCurrentUserId(newId);
     localStorage.setItem('matchgig_active_user_id', newId);
     setActiveMenu('marketplace');
@@ -578,8 +619,48 @@ export default function App() {
     syncState('matchgig_withdrawals', updated);
   };
 
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2200);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className={`min-h-screen text-neutral-200 font-sans tracking-tight bg-[#0a0a0a] ${currentUser ? 'pb-24' : ''}`} id="app-viewport">
+    <div className={`min-h-screen text-neutral-100 font-sans tracking-tight bg-[#030712] ${currentUser ? 'pb-24' : ''}`} id="app-viewport">
+      {/* Premium Ambient Animated Splash Screen */}
+      {showSplash && (
+        <div className="fixed inset-0 bg-[#030712] z-999 flex flex-col items-center justify-center animate-fadeIn select-none">
+          <div className="relative flex flex-col items-center space-y-6 max-w-sm px-6 text-center">
+            {/* Animated Glow Backdrops */}
+            <div className="absolute -inset-10 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.15)_0%,transparent_60%)] blur-2xl animate-pulse" />
+            
+            {/* MG Premium Interlocking Monogram Logo */}
+            <div className={`relative w-24 h-24 flex items-center justify-center rounded-2xl bg-gradient-to-b from-[#131f37] to-[#070e1b] border border-[#d4af37]/45 shadow-[0_0_25px_rgba(212,175,55,0.25)] overflow-hidden shrink-0 animate-bounce`}>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.25)_0%,transparent_70%)]" />
+              <span className="font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-[#f5dfa3] via-[#d4af37] to-[#cca43b] text-[38px] z-10">M</span>
+              <span className="font-extrabold tracking-tight font-display text-[#f8fafc] text-[38px] -ml-[3px] z-10">G</span>
+            </div>
+
+            <div className="space-y-2 z-10">
+              <h1 className="text-3xl font-black tracking-widest text-white uppercase font-display">
+                Match<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ecd279] to-[#d4af37]">Gig</span>
+              </h1>
+              <p className="text-xs font-semibold tracking-widest text-[#d4af37] font-sans uppercase">
+                Connect • Create • Earn
+              </p>
+              <div className="w-16 h-[2px] bg-gradient-to-r from-transparent via-[#d4af37]/60 to-transparent mx-auto mt-3" />
+            </div>
+            
+            <div className="text-[10px] font-mono text-neutral-500 animate-pulse pt-2">
+              Loading Creator Studio Engine...
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Real-time Gift Overlay Particles burst */}
       <GiftsOverlay triggerEvent={activeGiftCelebration} />
 
@@ -597,17 +678,20 @@ export default function App() {
       )}
 
       {/* Main App Bar / Navigation Header */}
-      <header className="sticky top-0 z-40 bg-neutral-950/80 backdrop-blur-xl border-b border-neutral-900 px-4 py-3.5 flex items-center justify-between">
-        <div className="flex items-center space-x-2 pl-2">
-          <div className="bg-gradient-to-tr from-purple-600 to-amber-500 p-2 rounded-xl border border-purple-400/20 shadow-md">
-            <Briefcase className="w-5 h-5 text-neutral-950 font-black" />
+      <header className="sticky top-0 z-40 bg-[#060c1d]/90 backdrop-blur-xl border-b border-[#111e3b] px-4 pb-3.5 safe-pt flex items-center justify-between">
+        <div className="flex items-center space-x-3.5 pl-2">
+          {/* MG Monogram Header logo */}
+          <div className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-b from-[#131f37] to-[#070e1b] border border-[#d4af37]/35 shadow-[0_0_12px_rgba(212,175,55,0.12)] overflow-hidden shrink-0">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.18)_0%,transparent_70%)]" />
+            <span className="font-extrabold tracking-tight font-display text-transparent bg-clip-text bg-gradient-to-r from-[#f0d481] via-[#d4af37] to-[#b8932c] text-[15px] z-10">M</span>
+            <span className="font-extrabold tracking-tight font-display text-[#f8fafc] text-[15px] -ml-[1.5px] z-10">G</span>
           </div>
           <div>
-            <h1 className="text-lg font-black text-white tracking-tight leading-none flex items-center">
+            <h1 className="text-base font-black text-white tracking-tight leading-none flex items-center">
               <span>MatchGig</span>
-              <span className="text-[10px] ml-1 px-1.5 py-0.2 bg-purple-500/10 text-purple-400 font-mono font-bold rounded border border-purple-500/20">MVP</span>
+              <span className="text-[9px] ml-1.5 px-2 py-0.5 bg-[#d4af37]/10 text-[#d4af37] font-mono font-bold rounded border border-[#d4af37]/25">PREMIUM</span>
             </h1>
-            <span className="text-[9px] text-neutral-500 font-mono tracking-widest block font-bold uppercase mt-0.5">Freelance & Gifts Portal</span>
+            <span className="text-[9px] text-[#d4af37]/70 font-mono tracking-wider block font-bold uppercase mt-1">Connect • Create • Earn</span>
           </div>
         </div>
 
@@ -1242,7 +1326,7 @@ export default function App() {
 
       {/* Primary Bottom Menu sticky navigation bar (🏠 Home, 💼 Services, 💰 Wallet, 👤 Profile) */}
       {currentUser && (
-        <div className="fixed bottom-4 inset-x-4 max-w-md mx-auto bg-neutral-950/90 backdrop-blur-xl border border-neutral-800 rounded-2xl py-3 px-6 z-55 flex items-center justify-around shadow-2xl animate-fadeIn">
+        <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] inset-x-4 max-w-md mx-auto bg-neutral-950/90 backdrop-blur-xl border border-neutral-800 rounded-2xl py-3 px-6 z-55 flex items-center justify-around shadow-2xl animate-fadeIn">
           {/* 🏠 Home Button */}
           <button
             onClick={() => setActiveMenu('home')}

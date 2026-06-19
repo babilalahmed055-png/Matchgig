@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MatchGig</string>
+    <string name="title_activity_main">MatchGig</string>
+    <string name="package_name">com.matchgig.app</string>
+    <string name="custom_url_scheme">com.matchgig.app</string>
+</resources>

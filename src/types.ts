@@ -129,6 +129,8 @@ export interface CoinEconomySettings {
   premiumFee: number; // platform fee % for Pro/VIP users (e.g. 10)
   maxDailyTransaction: number; // max per transaction
   escrowCommission: number; // platform commission % on jobs (e.g. 15)
+  totalCoinSupply: number; // Max total coin supply available (e.g. 100000000)
+  circulatingCoins: number; // Coins currently in hands of users
 }
 
 export interface GigOrder {

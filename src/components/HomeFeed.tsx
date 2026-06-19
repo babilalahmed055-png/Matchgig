@@ -19,7 +19,12 @@ import {
   Sliders,
   Tv,
   CheckCircle,
-  FileCheck
+  FileCheck,
+  FolderLock as FolderEdit,
+  FolderHeart,
+  Rocket,
+  SendHorizontal as PlaneTakeoff,
+  Trash2
 } from 'lucide-react';
 import { User, Gig, Gift } from '../types';
 import { VIRTUAL_GIFTS } from '../data';
@@ -62,6 +67,117 @@ export default function HomeFeed({
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'video' | 'post' | 'gig' | 'update'>('all');
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const [tickerNotification, setTickerNotification] = useState<string | null>(null);
+
+  // Creative Drafts and Composer State setup for Posts & Videos
+  const [draftItems, setDraftItems] = useState<any[]>(() => {
+    const saved = localStorage.getItem('matchgig_feed_drafts');
+    return saved ? JSON.parse(saved) : [
+      { id: 'draft_1', type: 'post', title: 'Draft Post: Lahore local branding color guidelines', body: 'This is a premium draft exploring color theory for Chai dhabas across Pakistan.', timestamp: 'Saved 3 hours ago' },
+      { id: 'draft_2', type: 'video', title: 'Draft Video: UI transition animations in After Effects', mediaUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600', duration: '15s', timestamp: 'Saved Yesterday' }
+    ];
+  });
+
+  const [composerTitle, setComposerTitle] = useState('');
+  const [composerBody, setComposerBody] = useState('');
+  const [composerType, setComposerType] = useState<'post' | 'video'>('post');
+  const [composerMediaUrl, setComposerMediaUrl] = useState('');
+  const [composerDuration, setComposerDuration] = useState('30s');
+  const [showDraftsSection, setShowDraftsSection] = useState(false);
+
+  const saveDraftsList = (updated: any[]) => {
+    setDraftItems(updated);
+    localStorage.setItem('matchgig_feed_drafts', JSON.stringify(updated));
+  };
+
+  const handleSaveDraft = () => {
+    if (!composerTitle.trim()) {
+      alert('Please write a draft title first.');
+      return;
+    }
+    const newDraft = {
+      id: 'draft_' + Math.random().toString(36).substring(2, 9),
+      type: composerType,
+      title: composerTitle,
+      body: composerBody,
+      mediaUrl: composerMediaUrl || (composerType === 'video' ? 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600' : undefined),
+      duration: composerType === 'video' ? composerDuration : undefined,
+      timestamp: 'Saved Just Now'
+    };
+    const updated = [newDraft, ...draftItems];
+    saveDraftsList(updated);
+    
+    // Clear inputs with smooth animation indication
+    setComposerTitle('');
+    setComposerBody('');
+    setComposerMediaUrl('');
+    setComposerDuration('30s');
+    
+    setTickerNotification(`🎉 Saved brand new draft as Draft ${composerType === 'video' ? 'Video' : 'Post'}!`);
+    setTimeout(() => setTickerNotification(null), 3000);
+  };
+
+  const handleDeleteDraft = (id: string, name: string) => {
+    const filtered = draftItems.filter(d => d.id !== id);
+    saveDraftsList(filtered);
+    setTickerNotification(`Deleted draft: "${name.substring(0, 20)}..."`);
+    setTimeout(() => setTickerNotification(null), 3500);
+  };
+
+  const handlePublishFromDraft = (draft: any) => {
+    // Append to live feed items state
+    const targetUserId = currentUser?.id || 'user_1';
+    const newFeed: FeedItem = {
+      id: 'feed_user_item_' + Math.random().toString(35).substring(2, 8),
+      type: draft.type,
+      authorId: targetUserId,
+      title: draft.type === 'video' ? `🎥 ${draft.title}` : `📝 ${draft.title}`,
+      body: draft.body || '',
+      mediaUrl: draft.mediaUrl || (draft.type === 'video' ? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=600' : undefined),
+      duration: draft.type === 'video' ? (draft.duration || '30s') : undefined,
+      views: draft.type === 'video' ? '1' : undefined,
+      likes: 0,
+      comments: [],
+      timestamp: 'Just Publish Powered'
+    };
+
+    setFeedItems(prev => [newFeed, ...prev]);
+    // Remove from drafts
+    const remaining = draftItems.filter(d => d.id !== draft.id);
+    saveDraftsList(remaining);
+
+    setTickerNotification(`🚀 Published premium draft "${draft.title.substring(0,25)}..." straight to the Feed stream!`);
+    setTimeout(() => setTickerNotification(null), 4000);
+  };
+
+  const handlePublishDirect = () => {
+    if (!composerTitle.trim()) {
+      alert('Please add a creative title for your live Feed update.');
+      return;
+    }
+    const targetUserId = currentUser?.id || 'user_1';
+    const newFeed: FeedItem = {
+      id: 'feed_user_item_' + Math.random().toString(35).substring(2, 8),
+      type: composerType,
+      authorId: targetUserId,
+      title: composerType === 'video' ? `🎥 ${composerTitle}` : `📝 ${composerTitle}`,
+      body: composerBody || '',
+      mediaUrl: composerMediaUrl || (composerType === 'video' ? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=600' : undefined),
+      duration: composerType === 'video' ? composerDuration : undefined,
+      views: composerType === 'video' ? '12' : undefined,
+      likes: 1,
+      comments: [],
+      timestamp: 'Just now'
+    };
+
+    setFeedItems(prev => [newFeed, ...prev]);
+    setComposerTitle('');
+    setComposerBody('');
+    setComposerMediaUrl('');
+    setComposerDuration('30s');
+
+    setTickerNotification(`🚀 Dynamic ${composerType === 'video' ? 'video' : 'post'} published to live feed stream!`);
+    setTimeout(() => setTickerNotification(null), 3000);
+  };
 
   // Comments support
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
@@ -263,6 +379,204 @@ export default function HomeFeed({
           <Coins className="w-4 h-4 text-neutral-950" />
           <span>REFILL CREDITS</span>
         </button>
+      </div>
+
+      {/* PREMIUM CREATOR STUDIO & DRAFT MANAGER WORKSPACE */}
+      <div className="bg-[#0b1528] rounded-3xl border border-[#d4af37]/20 p-5 space-y-4 relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 p-12 bg-gradient-to-tr from-[#d4af37]/5 to-[#1a365d] blur-2xl pointer-events-none rounded-full" />
+        
+        <div className="flex items-center justify-between border-b border-[#112547] pb-3 z-10 relative">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#d4af37]/10 flex items-center justify-center border border-[#d4af37]/35 text-[#d4af37]">
+              <Sparkles className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-tight">Premium Creator Studio</h3>
+              <p className="text-[10px] text-neutral-400 font-mono">Compose stream updates for @{currentUser?.username || 'creator'}</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowDraftsSection(!showDraftsSection)}
+            className={`px-3 py-1.5 rounded-xl text-[10px] uppercase font-mono font-bold tracking-wider transition-all duration-300 flex items-center space-x-1.5 ${
+              draftItems.length > 0 
+                ? 'bg-[#d4af37]/10 border border-[#d4af37]/45 text-[#d4af37]' 
+                : 'bg-neutral-900 border border-neutral-800 text-neutral-500 hover:text-neutral-300'
+            }`}
+          >
+            <FolderEdit className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span>Drafts Directory ({draftItems.length})</span>
+          </button>
+        </div>
+
+        {/* Dynamic Composer Inputs workspace */}
+        <div className="space-y-3 z-10 relative">
+          <div className="flex items-center space-x-2 bg-neutral-950 p-1 rounded-xl border border-[#112547] max-w-xs">
+            <button
+              onClick={() => setComposerType('post')}
+              className={`flex-1 py-1 px-3 text-[10px] font-mono font-bold rounded-lg transition-all ${
+                composerType === 'post' 
+                  ? 'bg-[#d4af37]/15 text-[#d4af37] border border-[#d4af37]/25 font-black' 
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              📝 Draft Post
+            </button>
+            <button
+              onClick={() => setComposerType('video')}
+              className={`flex-1 py-1 px-3 text-[10px] font-mono font-bold rounded-lg transition-all ${
+                composerType === 'video' 
+                  ? 'bg-[#d4af37]/15 text-[#d4af37] border border-[#d4af37]/25 font-black' 
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              🎬 Vertical Reel
+            </button>
+          </div>
+
+          <div className="space-y-2.5">
+            <input
+              type="text"
+              placeholder={composerType === 'video' ? "Reel Cover Title (e.g. 🎥 After Effects Kinetic Presets)" : "Aesthetic Post Title (e.g. 📝 Lahore branding Guidelines...)"}
+              value={composerTitle}
+              onChange={(e) => setComposerTitle(e.target.value)}
+              className="w-full bg-neutral-950/80 border border-[#112547] focus:border-[#d4af37]/50 rounded-xl px-3.5 py-2 text-xs text-white placeholder-neutral-500 outline-none transition"
+              id="studio-composer-title"
+            />
+
+            <textarea
+              placeholder="What creative workflow insight of the creator economy are you sharing today?"
+              value={composerBody}
+              onChange={(e) => setComposerBody(e.target.value)}
+              rows={2}
+              className="w-full bg-neutral-950/80 border border-[#112547] focus:border-[#d4af37]/50 rounded-xl px-3.5 py-2 text-xs text-white placeholder-neutral-500 outline-none transition resize-none"
+              id="studio-composer-body"
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <span className="text-[9px] text-neutral-400 font-mono block mb-1">AESTHETIC COVER IMAGE URL (OPTIONAL):</span>
+                <input
+                  type="text"
+                  placeholder="Paste Unsplash asset URL..."
+                  value={composerMediaUrl}
+                  onChange={(e) => setComposerMediaUrl(e.target.value)}
+                  className="w-full bg-neutral-950/80 border border-[#112547] focus:border-[#d4af37]/50 rounded-xl px-3 py-1.5 text-[11px] text-white placeholder-neutral-500 outline-none transition font-sans"
+                  id="studio-composer-media"
+                />
+              </div>
+
+              {composerType === 'video' && (
+                <div>
+                  <span className="text-[9px] text-neutral-400 font-mono block mb-1">REEL VIDEO LENGTH CHOOSE:</span>
+                  <select
+                    value={composerDuration}
+                    onChange={(e) => setComposerDuration(e.target.value)}
+                    className="w-full bg-neutral-950/80 border border-[#112547] focus:border-[#d4af37]/50 rounded-xl px-3 py-1.5 text-[11px] text-white outline-none transition font-mono font-bold text-[#d4af37]"
+                    id="studio-composer-duration"
+                  >
+                    <option value="15s">⚡ 15 Seconds (Brief Highlight)</option>
+                    <option value="30s">🔥 30 Seconds (Standard Hack)</option>
+                    <option value="58s">🎬 58 Seconds (Full Production)</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[10px] text-neutral-400 font-mono font-semibold">
+              🔒 Cloud telemetry protected
+            </span>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={handleSaveDraft}
+                className="px-3.5 py-2 bg-neutral-950 hover:bg-neutral-900 border border-[#d4af37]/25 hover:border-[#d4af37]/65 text-[#d4af37] text-xs font-mono font-bold rounded-xl transition flex items-center space-x-1.5 active:scale-95"
+              >
+                <FolderHeart className="w-3.5 h-3.5" />
+                <span>Save Draft Folder</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePublishDirect}
+                className="px-4 py-2 bg-gradient-to-r from-[#cca43b] to-[#d4af37] hover:from-[#d4af37] hover:to-[#ebd074] text-neutral-950 text-xs font-mono font-black rounded-xl transition shadow-lg shadow-[#d4af37]/10 flex items-center space-x-1.5 active:scale-95"
+              >
+                <Rocket className="w-3.5 h-3.5" />
+                <span>Publish Stream</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* COLLAPSIBLE PREMIUM DRAFTS DIRECTORY WORKSPACE */}
+        {showDraftsSection && (
+          <div className="border-t border-[#112547] pt-4 mt-3 space-y-3.5 animate-slideDown z-10 relative">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono text-[#d4af37] font-black uppercase tracking-wider block">
+                📁 Saved draft folder checklist ({draftItems.length} items intact)
+              </span>
+              <span className="text-[9px] text-[#00e676] font-mono bg-[#00e676]/10 px-2 py-0.5 rounded border border-[#00e676]/25">
+                APK/Play Store Deploy Ready State
+              </span>
+            </div>
+
+            {draftItems.length === 0 ? (
+              <div className="text-center py-5 bg-neutral-950/45 rounded-2xl border border-neutral-900">
+                <p className="text-xs text-neutral-500 font-mono">No drafts saved. Save post ideas to refine later!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-2.5 max-h-[220px] overflow-y-auto scrollbar-none pr-1">
+                {draftItems.map((draft) => (
+                  <div
+                    key={draft.id}
+                    className="p-3 bg-neutral-950 border border-[#112547] hover:border-[#d4af37]/35 rounded-2xl transition flex items-center justify-between text-left gap-3"
+                  >
+                    <div className="flex items-center space-x-3.5 overflow-hidden">
+                      {draft.type === 'video' ? (
+                        <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-neutral-900 border border-neutral-800">
+                          <img src={draft.mediaUrl} className="w-full h-full object-cover" />
+                          <div className="absolute inset-x-0 bottom-0 py-0.5 bg-black/80 text-[7px] text-center font-mono font-bold text-[#d4af37]">
+                            {draft.duration || '30s'}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-[#d4af37]/5 shrink-0 border border-[#d4af37]/20 flex items-center justify-center text-xs font-bold text-[#d4af37]">
+                          📝
+                        </div>
+                      )}
+                      <div className="overflow-hidden">
+                        <h4 className="text-xs font-extrabold text-white truncate">{draft.title}</h4>
+                        <p className="text-[10px] text-neutral-500 truncate mt-0.5">{draft.body || 'No description supplied'}</p>
+                        <span className="text-[8px] font-mono text-neutral-500 block mt-1">{draft.timestamp}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-1.5 shrink-0">
+                      <button
+                        onClick={() => handleDeleteDraft(draft.id, draft.title)}
+                        className="p-2 bg-neutral-900 hover:bg-red-950/40 text-neutral-400 hover:text-red-400 border border-neutral-800 hover:border-red-500/20 rounded-xl transition"
+                        title="Delete Draft Permanently"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => handlePublishFromDraft(draft)}
+                        className="px-3 py-1.5 bg-[#d4af37]/15 hover:bg-[#d4af37]/25 text-[#d4af37] border border-[#d4af37]/30 text-[10px] font-mono font-extrabold rounded-xl transition flex items-center space-x-1"
+                        title="Publish Live Feed"
+                      >
+                        <PlaneTakeoff className="w-3 h-3" />
+                        <span>Publish</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Feed Filters Tabs Bar */}

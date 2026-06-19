@@ -89,6 +89,9 @@ export default function AdminPanel({
 
   const [adjustingUser, setAdjustingUser] = useState<User | null>(null);
   const [adjustAmountText, setAdjustAmountText] = useState('');
+  const [adjustMode, setAdjustMode] = useState<'set' | 'add' | 'remove'>('add');
+  const [increaseSupplyAmount, setIncreaseSupplyAmount] = useState<string>('10000000');
+  const [supplyFeedback, setSupplyFeedback] = useState<string | null>(null);
 
   const [rejectionModal, setRejectionModal] = useState<WithdrawalRequest | null>(null);
   const [rejectionReasonText, setRejectionReasonText] = useState('Documents validation discrepancy');
@@ -158,14 +161,28 @@ export default function AdminPanel({
     setTimeout(() => setBonusNotification(null), 4000);
   };
 
-  // Execute User Direct Balance Override
+  // Execute User Balance addition / removal / overriding
   const triggerBalanceAdjustmentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!adjustingUser) return;
-    const targetAmt = parseInt(adjustAmountText);
-    if (isNaN(targetAmt) || targetAmt < 0) {
+    const valAmt = parseInt(adjustAmountText);
+    if (isNaN(valAmt) || valAmt < 0) {
       alert('Please specify a valid non-negative coins number.');
       return;
+    }
+
+    let targetAmt = valAmt;
+    let label = '';
+    
+    if (adjustMode === 'add') {
+      targetAmt = adjustingUser.coins + valAmt;
+      label = `Credited +${valAmt} Coins`;
+    } else if (adjustMode === 'remove') {
+      targetAmt = Math.max(0, adjustingUser.coins - valAmt);
+      label = `Deducted -${valAmt} Coins`;
+    } else {
+      targetAmt = valAmt;
+      label = `Overrode balance to ${valAmt} Coins`;
     }
 
     const difference = targetAmt - adjustingUser.coins;
@@ -183,12 +200,12 @@ export default function AdminPanel({
       userId: adjustingUser.id,
       type: 'adjustment',
       amount: difference,
-      description: `⚙️ Admin Balance Correction: adjusted from ${adjustingUser.coins} to ${targetAmt} (Delta: ${difference > 0 ? '+' : ''}${difference})`,
+      description: `⚙️ Admin ${label} (Base: ${adjustingUser.coins} ➔ Target: ${targetAmt} | Delta: ${difference > 0 ? '+' : ''}${difference})`,
       timestamp: new Date().toISOString()
     };
     onUpdateTransactionsList([newTx, ...transactions]);
 
-    setBonusNotification(`Direct override completed for @${adjustingUser.username}: Set balance to ${targetAmt} Coins`);
+    setBonusNotification(`${label} completed securely for @${adjustingUser.username}!`);
     setAdjustingUser(null);
     setAdjustAmountText('');
     setTimeout(() => setBonusNotification(null), 4000);
@@ -1037,6 +1054,101 @@ export default function AdminPanel({
               </p>
             </div>
 
+            {/* Global Tokenomics segments */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-neutral-950 p-5 rounded-2xl border border-neutral-800">
+              <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800/80">
+                <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-mono font-bold block">Max Coin Supply Limit</span>
+                <span className="text-2xl font-black text-[#d4af37] font-mono block mt-1.5">
+                  {(economySettings.totalCoinSupply || 100000000).toLocaleString()} 🪙
+                </span>
+                <span className="text-[9px] text-neutral-500 block mt-1">Global hard cap supply threshold</span>
+              </div>
+              <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800/80">
+                <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-mono font-bold block">Circulating Coins</span>
+                <span className="text-2xl font-black text-emerald-400 font-mono block mt-1.5">
+                  {totalCirculation.toLocaleString()} 🪙
+                </span>
+                <span className="text-[9px] text-neutral-500 block mt-1">Total coins logged in user wallets</span>
+              </div>
+              <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800/80 flex flex-col justify-between">
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-indigo-400 font-mono font-bold block">Available Uncirculated Supply</span>
+                  <span className="text-lg font-bold text-white font-mono block mt-0.5">
+                    {Math.max(0, (economySettings.totalCoinSupply || 100000000) - totalCirculation).toLocaleString()} 🪙
+                  </span>
+                </div>
+                <div className="w-full bg-neutral-950 h-1.5 rounded-full mt-2 overflow-hidden border border-neutral-850">
+                  <div
+                    className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, (totalCirculation / (economySettings.totalCoinSupply || 100000000)) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Increase Total Coin Supply Form section */}
+            <div className="bg-neutral-950 p-5 rounded-2xl border border-neutral-800 space-y-4">
+              <div>
+                <h4 className="font-extrabold text-xs text-white flex items-center space-x-2 uppercase tracking-wide">
+                  <span className="text-[#d4af37]">⚡</span>
+                  <span>Increase Total Coin Supply (Mint Coins)</span>
+                </h4>
+                <p className="text-neutral-500 text-[11px] mt-1">
+                  Increase and update the systemic total coins supply to support expanded welcome bonuses and promotional rewards.
+                </p>
+              </div>
+
+              {supplyFeedback && (
+                <div className="bg-emerald-950/10 border border-emerald-500/20 text-emerald-400 text-xs p-3 rounded-xl font-mono animate-fadeIn">
+                  {supplyFeedback}
+                </div>
+              )}
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const incrementValue = parseInt(increaseSupplyAmount);
+                  if (isNaN(incrementValue) || incrementValue <= 0) {
+                    alert('Please specify a positive value larger than 0.');
+                    return;
+                  }
+                  const currentSupply = economySettings.totalCoinSupply || 100000000;
+                  const nextSupply = currentSupply + incrementValue;
+                  const updatedSettings = {
+                    ...economySettings,
+                    totalCoinSupply: nextSupply,
+                    circulatingCoins: totalCirculation
+                  };
+                  onUpdateEconomySettings(updatedSettings);
+                  setSupplyFeedback(`🎉 Successfully minted +${incrementValue.toLocaleString()} MatchGig tokens. Supply hard cap extended to ${nextSupply.toLocaleString()}!`);
+                  setIncreaseSupplyAmount('10000000');
+                  setTimeout(() => setSupplyFeedback(null), 4000);
+                }}
+                className="flex flex-col sm:flex-row gap-3 items-end"
+              >
+                <div className="flex-1 w-full">
+                  <label className="text-[10px] uppercase font-mono font-bold text-neutral-400 block mb-1">Mint Amount (Coins):</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={increaseSupplyAmount}
+                      onChange={(e) => setIncreaseSupplyAmount(e.target.value)}
+                      className="w-full bg-neutral-900 border border-neutral-800 text-xs text-white p-2.5 pr-8 rounded-xl font-mono focus:outline-none"
+                    />
+                    <span className="absolute right-3 top-2.5 text-neutral-500 font-mono text-xs">🪙</span>
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#d4af37] text-neutral-950 text-xs font-mono font-black uppercase rounded-xl hover:bg-amber-400 transition whitespace-nowrap w-full sm:w-auto h-[40px] flex items-center justify-center shrink-0 shadow-lg"
+                >
+                  Mint & Increase Supply
+                </button>
+              </form>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Parameters Column 1 */}
@@ -1339,21 +1451,56 @@ export default function AdminPanel({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/85 backdrop-blur-sm">
           <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl p-6 text-left">
             <h4 className="text-lg font-black text-white flex items-center space-x-2">
-              <Settings className="w-5 h-5 text-rose-500" />
-              <span>Direct Balance Override</span>
+              <Settings className="w-5 h-5 text-amber-500" />
+              <span>Adjust User Coin Balance</span>
             </h4>
             <p className="text-xs text-neutral-400 mt-1">
-              Directly set the exact wallet coin count for <span className="font-bold text-white">@{adjustingUser.username}</span>. An audit transaction calculating the delta difference will be published automatically.
+              Modify wallet holdings for <span className="font-bold text-white">@{adjustingUser.username}</span>. Transactions are ledger-logged automatically.
             </p>
 
             <form onSubmit={triggerBalanceAdjustmentSubmit} className="mt-4 space-y-4">
               <div className="bg-neutral-950 p-3 rounded-xl border border-neutral-850 text-xs font-mono flex justify-between">
                 <span className="text-neutral-500">Current Balance:</span>
-                <span className="text-white font-bold">{adjustingUser.coins.toLocaleString()} Coins</span>
+                <span className="text-amber-400 font-extrabold">{adjustingUser.coins.toLocaleString()} Coins</span>
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-mono font-bold text-neutral-400 block">New Wallet Balance (Coins):</label>
+                <label className="text-[10px] uppercase font-mono font-bold text-neutral-400 block mb-1.5">Action Mode:</label>
+                <div className="grid grid-cols-3 gap-1 bg-neutral-950 p-1 rounded-xl border border-neutral-850">
+                  <button
+                    type="button"
+                    onClick={() => { setAdjustMode('add'); }}
+                    className={`py-1.5 rounded-lg text-[10px] font-mono font-bold transition-all uppercase ${
+                      adjustMode === 'add' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'text-neutral-500 hover:text-neutral-300'
+                    }`}
+                  >
+                    Add (+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAdjustMode('remove'); }}
+                    className={`py-1.5 rounded-lg text-[10px] font-mono font-bold transition-all uppercase ${
+                      adjustMode === 'remove' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/20' : 'text-neutral-500 hover:text-neutral-300'
+                    }`}
+                  >
+                    Remove (-)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAdjustMode('set'); }}
+                    className={`py-1.5 rounded-lg text-[10px] font-mono font-bold transition-all uppercase ${
+                      adjustMode === 'set' ? 'bg-purple-500/15 text-purple-400 border border-purple-500/20' : 'text-neutral-500 hover:text-neutral-300'
+                    }`}
+                  >
+                    Set Fixed
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-mono font-bold text-neutral-400 block">
+                  {adjustMode === 'add' ? 'Amount to Add (Coins):' : adjustMode === 'remove' ? 'Amount to Remove (Coins):' : 'New Absolute Balance (Coins):'}
+                </label>
                 <div className="relative mt-1">
                   <input
                     type="number"
@@ -1362,7 +1509,7 @@ export default function AdminPanel({
                     value={adjustAmountText}
                     onChange={(e) => setAdjustAmountText(e.target.value)}
                     className="w-full bg-neutral-950 border border-neutral-800 text-xs text-white p-2.5 pr-8 rounded-xl font-mono focus:outline-none focus:border-rose-500"
-                    placeholder="e.g. 500"
+                    placeholder="e.g. 250"
                   />
                   <span className="absolute right-3 top-2.5 text-neutral-500 font-mono text-xs">🪙</span>
                 </div>
@@ -1378,9 +1525,15 @@ export default function AdminPanel({
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 text-xs font-bold font-mono bg-rose-500 hover:bg-rose-400 text-neutral-950 rounded-xl transition font-black uppercase"
+                  className={`flex-1 py-2.5 text-xs font-bold font-mono rounded-xl transition font-black uppercase ${
+                    adjustMode === 'add'
+                      ? 'bg-emerald-500 text-neutral-950 hover:bg-emerald-400'
+                      : adjustMode === 'remove'
+                      ? 'bg-rose-500 text-white hover:bg-rose-400'
+                      : 'bg-purple-500 text-neutral-950 hover:bg-purple-400'
+                  }`}
                 >
-                  Force Adjust
+                  {adjustMode === 'add' ? 'Confirm Addition' : adjustMode === 'remove' ? 'Confirm Removal' : 'Force Overwrite'}
                 </button>
               </div>
             </form>
