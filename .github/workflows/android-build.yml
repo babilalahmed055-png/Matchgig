@@ -82,8 +82,13 @@ jobs:
             echo "Signing secrets are not configured. Release builds will be skipped."
           fi
 
-      - name: Make Gradle Wrapper Executable
-        run: chmod +x android/gradlew
+      - name: Repair and Validate Gradle Wrapper
+        run: |
+          echo "Ensuring pristine, uncorrupted gradle-wrapper.jar exists..."
+          mkdir -p android/gradle/wrapper
+          curl -sSLo android/gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.14.3/gradle/wrapper/gradle-wrapper.jar || \
+          curl -sSLo android/gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/v8.10.0/gradle/wrapper/gradle-wrapper.jar
+          chmod +x android/gradlew
 
       - name: Build Debug APK
         if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'debug' || github.event_name == 'push' || github.event_name == 'pull_request'
