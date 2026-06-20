@@ -1,8 +1,9 @@
 node_modules/
-build/
 dist/
-coverage/
-.DS_Store
+.next/
+*.ts
+*.js
 *.log
-.env*
-!.env.example
+.gradle/
+build/
+app/build/
