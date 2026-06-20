@@ -1,0 +1,20 @@
+# Enforce LF endings on graduation and gradle shell scripts
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Force binary handling (no line ending transformations) on Gradle jars
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.mp3 binary
+*.mp4 binary
+*.wav binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
