@@ -29,6 +29,27 @@ import {
 // Data and Types
 import { INITIAL_USERS, INITIAL_GIGS, VIRTUAL_GIFTS } from './data';
 import { User, Gig, Message, Transaction, GigOrder, SubscriptionType, WithdrawalRequest, CoinPackage, CoinEconomySettings } from './types';
+import { 
+  seedInitialDatabase,
+  getFirestoreUsers,
+  saveFirestoreUser,
+  getFirestoreGigs,
+  saveFirestoreGig,
+  getFirestoreMessages,
+  saveFirestoreMessage,
+  getFirestoreTransactions,
+  saveFirestoreTransaction,
+  getFirestoreOrders,
+  saveFirestoreOrder,
+  getFirestorePackages,
+  saveFirestorePackage,
+  getFirestoreEconomySettings,
+  saveFirestoreEconomySettings,
+  getFirestoreWithdrawals,
+  saveFirestoreWithdrawal,
+  getFirestoreNotifications,
+  saveFirestoreNotification
+} from './firebaseService';
 
 // Child components
 import HomeFeed from './components/HomeFeed';
@@ -104,136 +125,165 @@ export default function App() {
   const [signupEmail, setSignupEmail] = useState('');
   const [signupRole, setSignupRole] = useState<'Regular' | 'Freelancer' | 'Client'>('Regular');
 
-  // Load and initialize states from LocalStorage
+  // Load and initialize states from Firebase Firestore with LocalStorage fallbacks
   useEffect(() => {
-    const savedUsers = localStorage.getItem('matchgig_users');
-    const savedGigs = localStorage.getItem('matchgig_gigs');
-    const savedMessages = localStorage.getItem('matchgig_messages');
-    const savedTransactions = localStorage.getItem('matchgig_transactions');
-    const savedOrders = localStorage.getItem('matchgig_orders');
-    const savedActiveUserId = localStorage.getItem('matchgig_active_user_id');
+    async function loadData() {
+      // 1. Seed Firestore default data if brand new database setup
+      await seedInitialDatabase();
 
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    } else {
-      setUsers(INITIAL_USERS);
-      localStorage.setItem('matchgig_users', JSON.stringify(INITIAL_USERS));
-    }
-
-    if (savedGigs) {
-      setGigs(JSON.parse(savedGigs));
-    } else {
-      setGigs(INITIAL_GIGS);
-      localStorage.setItem('matchgig_gigs', JSON.stringify(INITIAL_GIGS));
-    }
-
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
-    } else {
-      // Seed initial messages
-      const initialMessages: Message[] = [
-        {
-          id: 'm1',
-          senderId: 'user_1',
-          receiverId: 'user_4',
-          text: 'Assalam-o-Alaikum Imran! I updated the modern UI retro guidelines mockup deck. Let me know if you would like custom adjustments.',
-          type: 'text',
-          timestamp: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-          id: 'm2',
-          senderId: 'user_4',
-          receiverId: 'user_1',
-          text: 'Walaikum Assalam Fatima! These mockups look gorgeous. I want to hire you to scale our SaaS branding guidelines logo immediately.',
-          type: 'text',
-          timestamp: new Date(Date.now() - 3000000).toISOString()
+      // 2. Fetch lists from Firestore
+      try {
+        const firestoreUsers = await getFirestoreUsers();
+        if (firestoreUsers.length > 0) {
+          setUsers(firestoreUsers);
+        } else {
+          const savedUsers = localStorage.getItem('matchgig_users');
+          setUsers(savedUsers ? JSON.parse(savedUsers) : INITIAL_USERS);
         }
-      ];
-      setMessages(initialMessages);
-      localStorage.setItem('matchgig_messages', JSON.stringify(initialMessages));
-    }
 
-    if (savedTransactions) {
-      setTransactions(JSON.parse(savedTransactions));
-    } else {
-      const initialTx: Transaction[] = [
-        {
-          id: 't1',
-          userId: 'user_4',
-          type: 'purchase',
-          amount: 25000,
-          description: 'Refilled Wallet Coins using Stripe simulated payment sandbox',
-          timestamp: new Date(Date.now() - 7200000).toISOString()
+        const firestoreGigs = await getFirestoreGigs();
+        if (firestoreGigs.length > 0) {
+          setGigs(firestoreGigs);
+        } else {
+          const savedGigs = localStorage.getItem('matchgig_gigs');
+          setGigs(savedGigs ? JSON.parse(savedGigs) : INITIAL_GIGS);
         }
-      ];
-      setTransactions(initialTx);
-      localStorage.setItem('matchgig_transactions', JSON.stringify(initialTx));
+
+        const firestoreMessages = await getFirestoreMessages();
+        if (firestoreMessages.length > 0) {
+          setMessages(firestoreMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
+        } else {
+          const savedMessages = localStorage.getItem('matchgig_messages');
+          if (savedMessages) setMessages(JSON.parse(savedMessages));
+        }
+
+        const firestoreTransactions = await getFirestoreTransactions();
+        if (firestoreTransactions.length > 0) {
+          setTransactions(firestoreTransactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+        } else {
+          const savedTransactions = localStorage.getItem('matchgig_transactions');
+          if (savedTransactions) setTransactions(JSON.parse(savedTransactions));
+        }
+
+        const firestoreOrders = await getFirestoreOrders();
+        if (firestoreOrders.length > 0) {
+          setOrders(firestoreOrders);
+        } else {
+          const savedOrders = localStorage.getItem('matchgig_orders');
+          if (savedOrders) setOrders(JSON.parse(savedOrders));
+        }
+
+        const firestorePackages = await getFirestorePackages();
+        if (firestorePackages.length > 0) {
+          setCoinPackages(firestorePackages);
+        } else {
+          const savedCoinPackages = localStorage.getItem('matchgig_coin_packages');
+          if (savedCoinPackages) setCoinPackages(JSON.parse(savedCoinPackages));
+        }
+
+        const firestoreEconomy = await getFirestoreEconomySettings();
+        setEconomySettings(firestoreEconomy);
+
+        const firestoreWithdrawals = await getFirestoreWithdrawals();
+        if (firestoreWithdrawals.length > 0) {
+          setWithdrawals(firestoreWithdrawals);
+        } else {
+          const savedWithdrawals = localStorage.getItem('matchgig_withdrawals');
+          if (savedWithdrawals) setWithdrawals(JSON.parse(savedWithdrawals));
+        }
+
+        const firestoreNotifications = await getFirestoreNotifications();
+        if (firestoreNotifications.length > 0) {
+          setNotifications(firestoreNotifications);
+        }
+
+      } catch (err) {
+        console.error("Firestore loading failed. Falling back to LocalStorage:", err);
+        const savedUsers = localStorage.getItem('matchgig_users');
+        if (savedUsers) setUsers(JSON.parse(savedUsers));
+        const savedGigs = localStorage.getItem('matchgig_gigs');
+        if (savedGigs) setGigs(JSON.parse(savedGigs));
+        const savedMessages = localStorage.getItem('matchgig_messages');
+        if (savedMessages) setMessages(JSON.parse(savedMessages));
+        const savedTransactions = localStorage.getItem('matchgig_transactions');
+        if (savedTransactions) setTransactions(JSON.parse(savedTransactions));
+        const savedOrders = localStorage.getItem('matchgig_orders');
+        if (savedOrders) setOrders(JSON.parse(savedOrders));
+        const savedCoinPackages = localStorage.getItem('matchgig_coin_packages');
+        if (savedCoinPackages) setCoinPackages(JSON.parse(savedCoinPackages));
+        const savedWithdrawals = localStorage.getItem('matchgig_withdrawals');
+        if (savedWithdrawals) setWithdrawals(JSON.parse(savedWithdrawals));
+      }
+
+      const savedActiveUserId = localStorage.getItem('matchgig_active_user_id');
+      if (savedActiveUserId) {
+        setCurrentUserId(savedActiveUserId);
+      } else {
+        setCurrentUserId('user_1');
+        localStorage.setItem('matchgig_active_user_id', 'user_1');
+      }
     }
 
-    if (savedOrders) {
-      setOrders(JSON.parse(savedOrders));
-    } else {
-      setOrders([]);
-    }
-
-    const savedCoinPackages = localStorage.getItem('matchgig_coin_packages');
-    const savedEconomySettings = localStorage.getItem('matchgig_economy_settings');
-    const savedWithdrawals = localStorage.getItem('matchgig_withdrawals');
-
-    if (savedCoinPackages) {
-      setCoinPackages(JSON.parse(savedCoinPackages));
-    } else {
-      const defaultPkgs: CoinPackage[] = [
-        { id: 'coin_p1', amount: 100, price: 100, bonus: 0, currency: 'PKR', isActive: true },
-        { id: 'coin_p2', amount: 500, price: 450, bonus: 25, currency: 'PKR', isActive: true },
-        { id: 'coin_p3', amount: 1000, price: 850, bonus: 100, currency: 'PKR', isActive: true },
-        { id: 'coin_p4', amount: 5000, price: 4000, bonus: 750, currency: 'PKR', isActive: true }
-      ];
-      setCoinPackages(defaultPkgs);
-      localStorage.setItem('matchgig_coin_packages', JSON.stringify(defaultPkgs));
-    }
-
-    if (savedEconomySettings) {
-      setEconomySettings(JSON.parse(savedEconomySettings));
-    } else {
-      const defaultEconomy: CoinEconomySettings = {
-        coinName: 'MatchGig Coin',
-        coinSymbol: '🪙',
-        pkrRate: 1,
-        standardFee: 20,
-        premiumFee: 10,
-        maxDailyTransaction: 10000,
-        escrowCommission: 15,
-        totalCoinSupply: 100000000,
-        circulatingCoins: 0
-      };
-      setEconomySettings(defaultEconomy);
-      localStorage.setItem('matchgig_economy_settings', JSON.stringify(defaultEconomy));
-    }
-
-    if (savedWithdrawals) {
-      setWithdrawals(JSON.parse(savedWithdrawals));
-    } else {
-      const defaultWiths: WithdrawalRequest[] = [
-        { id: 'w_1', userId: 'user_1', userName: 'Fatima Malik', userUsername: 'designer_fatima', amount: 500, method: 'Easypaisa', accountNumber: '03001234567', accountName: 'Fatima Malik', status: 'Pending' as const, date: '2026-06-17', feeDeducted: 100, netPayout: 400 },
-        { id: 'w_2', userId: 'user_2', userName: 'Hamza Siddiqui', userUsername: 'editor_hamza', amount: 1000, method: 'Bank Transfer', accountNumber: 'PK00MEZN00123456789', accountName: 'Hamza Siddiqui', status: 'Pending' as const, date: '2026-06-18', feeDeducted: 200, netPayout: 800 }
-      ];
-      setWithdrawals(defaultWiths);
-      localStorage.setItem('matchgig_withdrawals', JSON.stringify(defaultWiths));
-    }
-
-    if (savedActiveUserId) {
-      setCurrentUserId(savedActiveUserId);
-    } else {
-      // Auto-set default demo login to Fatima (Freelancer) for excellent out-of-box experience
-      setCurrentUserId('user_1');
-      localStorage.setItem('matchgig_active_user_id', 'user_1');
-    }
+    loadData();
   }, []);
 
   // Helper sync tool
-  const syncState = (key: string, data: any) => {
+  const syncState = async (key: string, data: any) => {
     localStorage.setItem(key, JSON.stringify(data));
+    try {
+      if (key === 'matchgig_users') {
+        const usersArray = data as User[];
+        for (const u of usersArray) {
+          await saveFirestoreUser(u);
+        }
+      } else if (key === 'matchgig_gigs') {
+        const gigsArray = data as Gig[];
+        for (const g of gigsArray) {
+          await saveFirestoreGig(g);
+        }
+      } else if (key === 'matchgig_messages') {
+        const messagesArray = data as Message[];
+        for (const m of messagesArray) {
+          await saveFirestoreMessage(m);
+        }
+      } else if (key === 'matchgig_transactions') {
+        const transactionsArray = data as Transaction[];
+        for (const t of transactionsArray) {
+          await saveFirestoreTransaction(t);
+        }
+      } else if (key === 'matchgig_orders') {
+        const ordersArray = data as GigOrder[];
+        for (const o of ordersArray) {
+          await saveFirestoreOrder(o);
+        }
+      } else if (key === 'matchgig_coin_packages') {
+        const packagesArray = data as CoinPackage[];
+        for (const p of packagesArray) {
+          await saveFirestorePackage(p);
+        }
+      } else if (key === 'matchgig_economy_settings') {
+        await saveFirestoreEconomySettings(data as CoinEconomySettings);
+      } else if (key === 'matchgig_withdrawals') {
+        const withdrawalsArray = data as WithdrawalRequest[];
+        for (const w of withdrawalsArray) {
+          await saveFirestoreWithdrawal(w);
+        }
+      } else if (key === 'matchgig_notifications') {
+        const notificationsArray = data as any[];
+        for (const n of notificationsArray) {
+          await saveFirestoreNotification({
+            id: n.id,
+            userId: n.userId || currentUserId || 'user_1',
+            title: n.title,
+            text: n.text,
+            date: n.date,
+            unread: !!n.unread
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to sync updated schema to Firestore for:", key, e);
+    }
   };
 
   const handleUpdateUsersList = (updatedUsers: User[]) => {

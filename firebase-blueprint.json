@@ -1,0 +1,204 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents a MatchGig user profile, coins, and premium subscription state.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "avatar": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "role": { "type": "string" },
+        "bio": { "type": "string" },
+        "skills": { "type": "array" },
+        "city": { "type": "string" },
+        "country": { "type": "string" },
+        "coins": { "type": "number" },
+        "rating": { "type": "number" },
+        "completedJobs": { "type": "number" },
+        "badge": { "type": "string" },
+        "experiences": { "type": "array" },
+        "portfolio": { "type": "array" },
+        "subscription": { "type": "string" },
+        "isBanned": { "type": "boolean" }
+      },
+      "required": ["id", "username", "name", "email", "role", "coins", "subscription"]
+    },
+    "Gig": {
+      "title": "Gig",
+      "description": "Represents a workspace freelancer service listing.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "deliveryTime": { "type": "number" },
+        "revisions": { "type": "number" },
+        "portfolioImages": { "type": "array" },
+        "category": { "type": "string" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" }
+      },
+      "required": ["id", "title", "creatorId", "description", "price"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Represents a message sent in Chat System, potentially attaching gift/micropayments.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "text": { "type": "string" },
+        "type": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "giftType": { "type": "string" },
+        "coinsCount": { "type": "number" },
+        "timestamp": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "senderId", "receiverId", "text", "type", "timestamp"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Auditable coin balance transfer, gift, refill, or escrow charge.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string" },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "userId", "type", "amount", "description", "timestamp"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "A notification dispatch target for in-app alert lists.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "text": { "type": "string" },
+        "date": { "type": "string" },
+        "unread": { "type": "boolean" }
+      },
+      "required": ["id", "userId", "title", "text", "date", "unread"]
+    },
+    "GigOrder": {
+      "title": "GigOrder",
+      "description": "Job deal contract with built-in funds escrow locks.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "gigId": { "type": "string" },
+        "title": { "type": "string" },
+        "buyerId": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "price": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "deliveryDate": { "type": "string" },
+        "ratingGiven": { "type": "number" }
+      },
+      "required": ["id", "gigId", "title", "buyerId", "sellerId", "price", "status", "createdAt", "deliveryDate"]
+    },
+    "CoinPackage": {
+      "title": "CoinPackage",
+      "description": "Refill parameters configured in PKR sandbox parameters.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "amount": { "type": "number" },
+        "price": { "type": "number" },
+        "bonus": { "type": "number" },
+        "currency": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["id", "amount", "price", "bonus", "currency", "isActive"]
+    },
+    "CoinEconomySettings": {
+      "title": "CoinEconomySettings",
+      "description": "Dynamic tax structures and platform parameters managed by admins.",
+      "type": "object",
+      "properties": {
+        "coinName": { "type": "string" },
+        "coinSymbol": { "type": "string" },
+        "pkrRate": { "type": "number" },
+        "standardFee": { "type": "number" },
+        "premiumFee": { "type": "number" },
+        "maxDailyTransaction": { "type": "number" },
+        "escrowCommission": { "type": "number" },
+        "totalCoinSupply": { "type": "number" },
+        "circulatingCoins": { "type": "number" }
+      },
+      "required": ["coinName", "coinSymbol", "pkrRate", "standardFee", "premiumFee", "maxDailyTransaction"]
+    },
+    "WithdrawalRequest": {
+      "title": "WithdrawalRequest",
+      "description": "Audit request ledger items for standard users requesting cashout.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userUsername": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string" },
+        "accountNumber": { "type": "string" },
+        "accountName": { "type": "string" },
+        "status": { "type": "string" },
+        "date": { "type": "string" },
+        "rejectionReason": { "type": "string" },
+        "feeDeducted": { "type": "number" },
+        "netPayout": { "type": "number" }
+      },
+      "required": ["id", "userId", "userName", "userUsername", "amount", "method", "accountNumber", "accountName", "status", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "Access control mapped to profile records."
+    },
+    "/gigs/{gigId}": {
+      "schema": { "$ref": "Gig" },
+      "description": "Portfolio marketplace listing indexes."
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "Message" },
+      "description": "Instant messaging transaction streams, queries rely on senderId/receiverId."
+    },
+    "/transactions/{transactionId}": {
+      "schema": { "$ref": "Transaction" },
+      "description": "Historical audit traces of wallet movements."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "Notification" },
+      "description": "In-app notifications assigned to users."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "GigOrder" },
+      "description": "Escrow agreements signed between buyer and seller."
+    },
+    "/coin_packages/{packageId}": {
+      "schema": { "$ref": "CoinPackage" },
+      "description": "Coin packages settings listed."
+    },
+    "/economy_settings/main": {
+      "schema": { "$ref": "CoinEconomySettings" },
+      "description": "Global economics config controls."
+    },
+    "/withdrawals/{withdrawalId}": {
+      "schema": { "$ref": "WithdrawalRequest" },
+      "description": "Cashout request records reviewed by admins."
+    }
+  }
+}

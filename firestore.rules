@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Shared validation helpers
+    function isValidUser(data) {
+      return data.id is string
+        && data.username is string
+        && data.name is string
+        && data.email is string
+        && data.role is string
+        && data.coins is number
+        && data.subscription is string;
+    }
+
+    function isValidMessage(data) {
+      return data.id is string
+        && data.senderId is string
+        && data.receiverId is string
+        && data.text is string
+        && data.type is string
+        && data.timestamp is string;
+    }
+
+    function isValidTransaction(data) {
+      return data.id is string
+        && data.userId is string
+        && data.type is string
+        && data.amount is number
+        && data.description is string
+        && data.timestamp is string;
+    }
+
+    function isValidNotification(data) {
+      return data.id is string
+        && data.userId is string
+        && data.title is string
+        && data.text is string
+        && data.date is string
+        && data.unread is bool;
+    }
+
+    // Match patterns linked to database configurations
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.resource == null || isValidUser(request.resource.data);
+    }
+
+    match /gigs/{gigId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /messages/{messageId} {
+      allow read: if true;
+      allow write: if request.resource == null || isValidMessage(request.resource.data);
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if true;
+      allow write: if request.resource == null || isValidTransaction(request.resource.data);
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if true;
+      allow write: if request.resource == null || isValidNotification(request.resource.data);
+    }
+
+    match /orders/{orderId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /coin_packages/{packageId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /economy_settings/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /withdrawals/{withdrawalId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /support_tickets/{ticketId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /feed_drafts/{draftId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
