@@ -92,35 +92,56 @@ jobs:
           ./gradlew assembleDebug
 
       - name: Build Release APK & AAB
-        if: steps.check_secrets.outputs.has_secrets == 'true' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push' || github.event_name == 'pull_request')
+        if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push' || github.event_name == 'pull_request'
         run: |
           cd android
           ./gradlew assembleRelease
           ./gradlew bundleRelease
 
-      # Signing step for Release APK
+      # Signing step for Release APK (Manual zipalign + apksigner)
       - name: Sign Release APK
-        id: sign_apk
         if: steps.check_secrets.outputs.has_secrets == 'true' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push')
-        uses: r0adrunner/sign-android-release@v1
-        with:
-          releaseDirectory: android/app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          alias: ${{ secrets.ANDROID_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+          ZIPALIGN=$(find $ANDROID_HOME/build-tools -name zipalign | sort -V | tail -n 1)
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort -V | tail -n 1)
+          
+          # Align APK
+          $ZIPALIGN -v 4 android/app/build/outputs/apk/release/app-release-unsigned.apk android/app/build/outputs/apk/release/app-release-aligned.apk
+          
+          # Sign APK
+          $APKSIGNER sign --ks android/app/release.keystore --ks-key-alias "$KEY_ALIAS" --ks-pass pass:"$KEYSTORE_PASSWORD" --key-pass pass:"$KEY_PASSWORD" --out android/app/build/outputs/apk/release/app-release-signed.apk android/app/build/outputs/apk/release/app-release-aligned.apk
+          
+          # Verify APK
+          $APKSIGNER verify android/app/build/outputs/apk/release/app-release-signed.apk
 
-      # Signing step for Release AAB
+      # Signing step for Release AAB (Manual jarsigner)
       - name: Sign Release AAB
-        id: sign_aab
         if: steps.check_secrets.outputs.has_secrets == 'true' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push')
-        uses: r0adrunner/sign-android-release@v1
-        with:
-          releaseDirectory: android/app/build/outputs/bundle/release
-          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          alias: ${{ secrets.ANDROID_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ ! -f android/app/release.keystore ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+          fi
+          
+          # Sign AAB using jarsigner (preinstalled with JDK)
+          jarsigner -keystore android/app/release.keystore \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            android/app/build/outputs/bundle/release/app-release-unsigned.aab \
+            "$KEY_ALIAS"
+          
+          # Copy to final output mapping
+          cp android/app/build/outputs/bundle/release/app-release-unsigned.aab android/app/build/outputs/bundle/release/app-release-signed.aab
 
       # Artifact Uploads
 
@@ -132,18 +153,34 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
 
+      - name: Upload Unsigned Release APK Artifact
+        if: steps.check_secrets.outputs.has_secrets == 'false' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push' || github.event_name == 'pull_request')
+        uses: actions/upload-artifact@v4
+        with:
+          name: MatchGig-Unsigned-Release-APK
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          retention-days: 7
+
       - name: Upload Signed Release APK Artifact
         if: steps.check_secrets.outputs.has_secrets == 'true' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push')
         uses: actions/upload-artifact@v4
         with:
           name: MatchGig-Signed-Release-APK
-          path: ${{ steps.sign_apk.outputs.signedReleaseFile }}
+          path: android/app/build/outputs/apk/release/app-release-signed.apk
           retention-days: 30
+
+      - name: Upload Unsigned Release AAB Artifact
+        if: steps.check_secrets.outputs.has_secrets == 'false' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push' || github.event_name == 'pull_request')
+        uses: actions/upload-artifact@v4
+        with:
+          name: MatchGig-Unsigned-Release-AAB
+          path: android/app/build/outputs/bundle/release/app-release-unsigned.aab
+          retention-days: 7
 
       - name: Upload Signed Release AAB Artifact
         if: steps.check_secrets.outputs.has_secrets == 'true' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push')
         uses: actions/upload-artifact@v4
         with:
           name: MatchGig-Signed-Release-AAB
-          path: ${{ steps.sign_aab.outputs.signedReleaseFile }}
+          path: android/app/build/outputs/bundle/release/app-release-signed.aab
           retention-days: 30
