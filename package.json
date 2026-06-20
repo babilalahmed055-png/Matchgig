@@ -9,12 +9,12 @@
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "cap:add:android": "cap add android",
-    "cap:add:ios": "cap add ios",
-    "cap:copy": "cap copy",
-    "cap:sync": "cap sync",
-    "cap:open:android": "cap open android",
-    "cap:open:ios": "cap open ios"
+    "cap:add:android": "npx cap add android",
+    "cap:add:ios": "npx cap add ios",
+    "cap:copy": "npx cap copy",
+    "cap:sync": "npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios"
   },
   "dependencies": {
     "@capacitor/core": "^8.4.1",
