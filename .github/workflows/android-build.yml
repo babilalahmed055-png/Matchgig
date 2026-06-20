@@ -1,0 +1,152 @@
+name: MatchGig Android Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build Type (all, debug, release)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - debug
+          - release
+
+jobs:
+  build:
+    name: Build Android App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17' # Compatible with Gradle 8.13+ used by modern Capacitor templates
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci || npm install
+
+      - name: Build Web Application
+        run: |
+          npm run build
+
+      - name: Sync Capacitor Android Project
+        run: |
+          npx cap sync android
+
+      - name: Configure Firebase Support (google-services.json)
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+          GOOGLE_SERVICES_JSON_PLAIN: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "Decoding google-services.json from base64 secret..."
+            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > android/app/google-services.json
+          elif [ -n "$GOOGLE_SERVICES_JSON_PLAIN" ]; then
+            echo "Writing custom google-services.json from plain secret..."
+            echo "$GOOGLE_SERVICES_JSON_PLAIN" > android/app/google-services.json
+          else
+            echo "No google-services.json secret detected. Build will compile without platform-specific configurations unless pre-packaged."
+          fi
+
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x android/gradlew
+
+      - name: Build Debug APK
+        if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'debug' || github.event_name == 'push' || github.event_name == 'pull_request'
+        run: |
+          cd android
+          ./gradlew assembleDebug
+
+      - name: Build Unsigned Release APK & AAB
+        if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push' || github.event_name == 'pull_request'
+        run: |
+          cd android
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
+
+      # Signing step for Release APK (Only runs when ANDROID_KEYSTORE_BASE64 is provided in GitHub Secrets)
+      - name: Sign Release APK
+        id: sign_apk
+        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
+        uses: r0adrunner/sign-android-release@v1
+        with:
+          releaseDirectory: android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      # Signing step for Release AAB (Only runs when ANDROID_KEYSTORE_BASE64 is provided in GitHub Secrets)
+      - name: Sign Release AAB
+        id: sign_aab
+        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
+        uses: r0adrunner/sign-android-release@v1
+        with:
+          releaseDirectory: android/app/build/outputs/bundle/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      # Artifact Uploads
+
+      - name: Upload Debug APK Artifact
+        if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'debug' || github.event_name == 'push' || github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MatchGig-Debug-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
+
+      - name: Upload Unsigned Release APK Artifact
+        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 == '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push' || github.event_name == 'pull_request') }}"
+        uses: actions/upload-artifact@v4
+        with:
+          name: MatchGig-Unsigned-Release-APK
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          retention-days: 7
+
+      - name: Upload Signed Release APK Artifact
+        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
+        uses: actions/upload-artifact@v4
+        with:
+          name: MatchGig-Signed-Release-APK
+          path: ${{ steps.sign_apk.outputs.signedReleaseFile }}
+          retention-days: 30
+
+      - name: Upload Unsigned Release AAB Artifact
+        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 == '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push' || github.event_name == 'pull_request') }}"
+        uses: actions/upload-artifact@v4
+        with:
+          name: MatchGig-Unsigned-Release-AAB
+          path: android/app/build/outputs/bundle/release/app-release-unsigned.aab
+          retention-days: 7
+
+      - name: Upload Signed Release AAB Artifact
+        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
+        uses: actions/upload-artifact@v4
+        with:
+          name: MatchGig-Signed-Release-AAB
+          path: ${{ steps.sign_aab.outputs.signedReleaseFile }}
+          retention-days: 30
