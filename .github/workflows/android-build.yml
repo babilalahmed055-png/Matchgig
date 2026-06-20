@@ -25,6 +25,8 @@ jobs:
   build:
     name: Build Android App
     runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
     steps:
       - name: Checkout Code
@@ -88,7 +90,7 @@ jobs:
       # Signing step for Release APK (Only runs when ANDROID_KEYSTORE_BASE64 is provided in GitHub Secrets)
       - name: Sign Release APK
         id: sign_apk
-        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
+        if: "${{ env.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
         uses: r0adrunner/sign-android-release@v1
         with:
           releaseDirectory: android/app/build/outputs/apk/release
@@ -100,7 +102,7 @@ jobs:
       # Signing step for Release AAB (Only runs when ANDROID_KEYSTORE_BASE64 is provided in GitHub Secrets)
       - name: Sign Release AAB
         id: sign_aab
-        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
+        if: "${{ env.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
         uses: r0adrunner/sign-android-release@v1
         with:
           releaseDirectory: android/app/build/outputs/bundle/release
@@ -120,7 +122,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Unsigned Release APK Artifact
-        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 == '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push' || github.event_name == 'pull_request') }}"
+        if: "${{ env.ANDROID_KEYSTORE_BASE64 == '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push' || github.event_name == 'pull_request') }}"
         uses: actions/upload-artifact@v4
         with:
           name: MatchGig-Unsigned-Release-APK
@@ -128,7 +130,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Signed Release APK Artifact
-        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
+        if: "${{ env.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
         uses: actions/upload-artifact@v4
         with:
           name: MatchGig-Signed-Release-APK
@@ -136,7 +138,7 @@ jobs:
           retention-days: 30
 
       - name: Upload Unsigned Release AAB Artifact
-        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 == '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push' || github.event_name == 'pull_request') }}"
+        if: "${{ env.ANDROID_KEYSTORE_BASE64 == '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push' || github.event_name == 'pull_request') }}"
         uses: actions/upload-artifact@v4
         with:
           name: MatchGig-Unsigned-Release-AAB
@@ -144,7 +146,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Signed Release AAB Artifact
-        if: "${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
+        if: "${{ env.ANDROID_KEYSTORE_BASE64 != '' && (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'release' || github.event_name == 'push') }}"
         uses: actions/upload-artifact@v4
         with:
           name: MatchGig-Signed-Release-AAB
